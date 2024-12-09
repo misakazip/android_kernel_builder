@@ -27,61 +27,25 @@ jobs:
                       liblz4-tool make optipng device-tree-compiler libc6-dev-i386 lib32ncurses5-dev libx11-dev lib32z-dev libgl1-mesa-dev xsltproc pwgen libswitch-perl policycoreutils \
                       minicom libxml-sax-base-perl libxml-simple-perl libc6-dev-i386 lib32ncurses5-dev libx11-dev lib32z-dev libgl1-mesa-dev xsltproc bison gperf zlib1g-dev automake
 
-            - name: Restore clang cache
-              uses: actions/cache@v4
-              id: cache-clang
-              with:
-                  path: linux-x86
-                  key: ${{ runner.os }}-clang-cache-vili-lineage
-                  restore-keys: |
-                      ${{ runner.os }}-clang-cache-vili-lineage
-
             - name: Clone clang (prebuilt)
               if: steps.cache-clang.outputs.cache-hit != 'true'
               run: |
-                  git clone --depth=1 https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 -b android11-mainline-release
-
-            - name: Restore gcc cache
-              uses: actions/cache@v4
-              id: cache-gcc
-              with:
-                  path: |
-                      aarch64-linux-android-4.9
-                      arm-linux-androideabi-4.9
-                  key: ${{ runner.os }}-gcc-cache-vili-lineage
-                  restore-keys: |
-                      ${{ runner.os }}-gcc-cache-vili-lineage
+                  git clone --depth=1 https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b.git
 
             - name: Clone gcc (prebuilt)
               if: steps.cache-gcc.outputs.cache-hit != 'true'
               run: |
-                  git clone --depth=1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9 -b android11-mainline-release
-                  git clone --depth=1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9 -b android11-mainline-release
+                  git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-gnu-9.3.git
 
             - name: Build kernel
               run: |
                   export ARCH=arm64
                   export SUBARCH=arm64
                   export CROSS_COMPILE=aarch64-linux-gnu-
-                  export PATH=$PWD/aarch64-linux-android-4.9/bin:$PWD/arm-linux-androideabi-4.9/bin:$PATH
+                  export PATH=$PWD/android_prebuilts_clang_kernel_linux-x86_clang-r416183b/bin:$PWD/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-gnu-9.3/bin:$PATH
                   make O=out CC=clang ARCH=arm64 CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-androidkernel- gki_defconfig
                   make -j$(( $(nproc --all) +1)) O=out CC=clang ARCH=arm64 CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-androidkernel-
 
-            - name: Save clang cache
-              if: always()
-              uses: actions/cache@v4
-              with:
-                  path: linux-x86
-                  key: ${{ runner.os }}-clang-cache-vili-lineage
-
-            - name: Save gcc cache
-              if: always()
-              uses: actions/cache@v4
-              with:
-                  path: |
-                      aarch64-linux-android-4.9
-                      arm-linux-androideabi-4.9
-                  key: ${{ runner.os }}-gcc-cache-vili-lineage
 
             - name: Upload kernel (Image)
               uses: actions/upload-artifact@v4
