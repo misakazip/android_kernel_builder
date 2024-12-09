@@ -60,7 +60,7 @@ jobs:
               run: |
                   export ARCH=arm64
                   export SUBARCH=arm64
-                  export CROSS_COMPILE=$(pwd)/aarch64-linux-android-4.9/bin
+                  export CROSS_COMPILE=$(pwd)/aarch64-linux-android-4.9/bin/aarch64-linux-android-
                   export PATH=$PWD/aarch64-linux-android-4.9/bin:$PWD/arm-linux-androideabi-4.9/bin:$PATH
                   make clean
                   make mrproper
