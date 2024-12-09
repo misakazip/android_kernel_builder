@@ -41,10 +41,9 @@ jobs:
               run: |
                   export ARCH=arm64
                   export SUBARCH=arm64
-                  export CROSS_COMPILE=aarch64-linux-gnu-
                   export PATH=$PWD/android_prebuilts_clang_kernel_linux-x86_clang-r416183b/bin:$PWD/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-gnu-9.3/bin:$PATH
-                  make O=out CC=clang ARCH=arm64 CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-androidkernel- gki_defconfig
-                  make -j$(( $(nproc --all) +1)) O=out CC=clang ARCH=arm64 CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-androidkernel-
+                  make O=out CC=clang ARCH=arm64 CLANG_TRIPLE=aarch64-buildroot-linux-gnu- CROSS_COMPILE=aarch64-linux- gki_defconfig
+                  make -j$(( $(nproc --all) +1)) O=out CC=clang ARCH=arm64 CLANG_TRIPLE=aarch64-buildroot-linux-gnu- CROSS_COMPILE=aarch64-linux-
 
 
             - name: Upload kernel (Image)
