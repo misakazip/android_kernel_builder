@@ -18,7 +18,7 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
               with:
-                repository: 'misaka/android_kernel_xiaomi_sm8350'
+                repository: 'misakazip/android_kernel_xiaomi_sm8350'
 
             - name: Install dependencies
               run: |
