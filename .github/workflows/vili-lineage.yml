@@ -69,20 +69,18 @@ jobs:
                   make -j$(( $(nproc --all) +1)) O=out CC=clang
 
             - name: Save clang cache
-              if: always()
               uses: actions/cache@v4
               with:
                   path: linux-x86
-                  key: ${{ runner.os }}-clang-cache
+                  key: ${{ runner.os }}-clang-cache-lineage
+                  save-always: true
 
             - name: Save gcc cache
-              if: always()
               uses: actions/cache@v4
               with:
-                  path: |
-                      aarch64-linux-android-4.9
-                      arm-linux-androideabi-4.9
-                  key: ${{ runner.os }}-gcc-cache
+                  path: aarch64-linux-android-4.9
+                  key: ${{ runner.os }}-gcc-cache-lineage
+                  save-always: true
 
             - name: Upload kernel (Image)
               uses: actions/upload-artifact@v4
