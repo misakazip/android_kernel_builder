@@ -1,0 +1,135 @@
+name: LineageOS Kernel Builder
+
+on:
+    push:
+      paths-ignore:
+      - '**.md'
+      - 'COPYING'
+      - 'LICENSES/**'
+      - 'Documentation/**'
+      - 'README'
+    workflow_dispatch:
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                repository: 'misaka/android_kernel_xiaomi_sm8350'
+
+            - name: Install dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y git build-essential libncurses5-dev bison flex libssl-dev libelf-dev bc python3 python3-dev make \
+                      liblz4-tool make optipng device-tree-compiler libc6-dev-i386 lib32ncurses5-dev libx11-dev lib32z-dev libgl1-mesa-dev xsltproc pwgen libswitch-perl policycoreutils \
+                      minicom libxml-sax-base-perl libxml-simple-perl libc6-dev-i386 lib32ncurses5-dev libx11-dev lib32z-dev libgl1-mesa-dev xsltproc bison gperf zlib1g-dev automake
+
+            - name: Restore clang cache
+              uses: actions/cache@v4
+              id: cache-clang
+              with:
+                  path: linux-x86
+                  key: ${{ runner.os }}-clang-cache-lineage
+                  restore-keys: |
+                      ${{ runner.os }}-clang-cache-lineage
+
+            - name: Clone clang (prebuilt)
+              if: steps.cache-clang.outputs.cache-hit != 'true'
+              run: |
+                  git clone --depth=1 https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 -b android11-mainline-release
+
+            - name: Restore gcc cache
+              uses: actions/cache@v4
+              id: cache-gcc
+              with:
+                  path: |
+                      aarch64-linux-android-4.9
+                  key: ${{ runner.os }}-gcc-cache-lineage
+                  restore-keys: |
+                      ${{ runner.os }}-gcc-cache-lineage
+
+            - name: Clone gcc (prebuilt)
+              if: steps.cache-gcc.outputs.cache-hit != 'true'
+              run: |
+                  git clone --depth=1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9 -b android11-mainline-release
+
+            - name: Build kernel
+              run: |
+                  export ARCH=arm64
+                  export SUBARCH=arm64
+                  export CROSS_COMPILE=$(pwd)/aarch64-linux-android-4.9/bin
+                  export PATH=$PWD/aarch64-linux-android-4.9/bin:$PWD/arm-linux-androideabi-4.9/bin:$PATH
+                  make clean
+                  make mrproper
+                  mkdir -p out
+                  make O=out CC=clang gki_defconfig
+                  make -j$(( $(nproc --all) +1)) O=out CC=clang
+
+            - name: Save clang cache
+              if: always()
+              uses: actions/cache@v4
+              with:
+                  path: linux-x86
+                  key: ${{ runner.os }}-clang-cache
+
+            - name: Save gcc cache
+              if: always()
+              uses: actions/cache@v4
+              with:
+                  path: |
+                      aarch64-linux-android-4.9
+                      arm-linux-androideabi-4.9
+                  key: ${{ runner.os }}-gcc-cache
+
+            - name: Upload kernel (Image)
+              uses: actions/upload-artifact@v4
+              with:
+                  if-no-files-found: ignore
+                  name: Image
+                  path: out/arch/arm64/boot/Image
+
+            - name: Upload Kernel (Image.gz)
+              uses: actions/upload-artifact@v4
+              with:
+                  if-no-files-found: ignore
+                  name: Image.gz
+                  path: out/arch/arm64/boot/Image.gz
+
+            - name: Upload Kernel (dts)
+              uses: actions/upload-artifact@v4
+              with:
+                  if-no-files-found: ignore
+                  name: dts
+                  path: out/arch/arm64/boot/dts
+    
+    AnyKernel3:
+        runs-on: ubuntu-latest
+        needs: build
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with: 
+                repository: 'misakazip/AnyKernel3'
+                path: 'AnyKernel3'
+                persist-credentials: 'false'
+
+            - name: Download Image
+              uses: actions/download-artifact@v4
+              with:
+                  name: Image
+                  path: AnyKernel3/Image
+            
+            - name: Download Image.gz
+              uses: actions/download-artifact@v4
+              with:
+                  name: Image.gz
+                  path: AnyKernel3/Image.gz
+
+            - name: Upload AnyKernel3 Zip
+              uses: actions/upload-artifact@v4
+              with:
+                  name: AnyKernel3
+                  path: AnyKernel3/
