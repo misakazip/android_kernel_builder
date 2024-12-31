@@ -29,8 +29,8 @@ jobs:
 
             - name: Set up Building environment 
               run: |
-                  git clone https://github.com/akhilnarang/scripts
-                  bash setup/android_build_env.sh
+                  git clone https://github.com/akhilnarang/scripts build-scripts
+                  cd build-scripts && bash setup/android_build_env.sh
 
             - name: Clone clang (prebuilt)
               if: steps.cache-clang.outputs.cache-hit != 'true'
