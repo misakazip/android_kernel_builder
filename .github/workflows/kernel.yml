@@ -1,0 +1,102 @@
+name: Kernel Builder
+
+on:
+    push:
+      paths-ignore:
+      - '**.md'
+      - 'COPYING'
+      - 'LICENSES/**'
+      - 'Documentation/**'
+      - 'README'
+    workflow_dispatch:
+
+jobs:
+    build:
+        runs-on: ubuntu-20.04
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                repository: 'AOSP-for-vili/android_kernel_xiaomi_sm8350'
+
+            - name: Install dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y git build-essential libncurses5-dev bison flex libssl-dev libelf-dev bc python3 python3-dev make \
+                      liblz4-tool make optipng device-tree-compiler libc6-dev-i386 lib32ncurses5-dev libx11-dev lib32z-dev libgl1-mesa-dev xsltproc pwgen libswitch-perl policycoreutils \
+                      minicom libxml-sax-base-perl libxml-simple-perl libc6-dev-i386 lib32ncurses5-dev libx11-dev lib32z-dev libgl1-mesa-dev xsltproc bison gperf zlib1g-dev automake
+
+            - name: Set up Building environment 
+              run: |
+                  git clone https://github.com/akhilnarang/scripts
+                  bash setup/android_build_env.sh
+
+            - name: Clone clang (prebuilt)
+              if: steps.cache-clang.outputs.cache-hit != 'true'
+              run: |
+                  git clone --depth=1 https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b.git
+
+            - name: Clone gcc (prebuilt)
+              if: steps.cache-gcc.outputs.cache-hit != 'true'
+              run: |
+                  git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-gnu-9.3.git
+
+            - name: Build kernel
+              run: |
+                  export ARCH=arm64
+                  export SUBARCH=arm64
+                  export PATH=$PWD/android_prebuilts_clang_kernel_linux-x86_clang-r416183b/bin:$PWD/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-gnu-9.3/bin:$PATH
+                  make O=out CC=clang ARCH=arm64 CLANG_TRIPLE=aarch64-buildroot-linux-gnu- CROSS_COMPILE=aarch64-linux- gki_defconfig
+                  make -j$(( $(nproc --all) +1)) O=out CC=clang ARCH=arm64 CLANG_TRIPLE=aarch64-buildroot-linux-gnu- CROSS_COMPILE=aarch64-linux-
+
+
+            - name: Upload kernel (Image)
+              uses: actions/upload-artifact@v4
+              with:
+                  if-no-files-found: ignore
+                  name: Image
+                  path: out/arch/arm64/boot/Image
+
+            - name: Upload Kernel (Image.gz)
+              uses: actions/upload-artifact@v4
+              with:
+                  if-no-files-found: ignore
+                  name: Image.gz
+                  path: out/arch/arm64/boot/Image.gz
+
+            - name: Upload Kernel (dts)
+              uses: actions/upload-artifact@v4
+              with:
+                  if-no-files-found: ignore
+                  name: dts
+                  path: out/arch/arm64/boot/dts
+    
+    AnyKernel3:
+        runs-on: ubuntu-20.04
+        needs: build
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with: 
+                repository: 'misakazip/AnyKernel3'
+                path: 'AnyKernel3'
+                persist-credentials: 'false'
+
+            - name: Download Image
+              uses: actions/download-artifact@v4
+              with:
+                  name: Image
+                  path: AnyKernel3/Image
+            
+            - name: Download Image.gz
+              uses: actions/download-artifact@v4
+              with:
+                  name: Image.gz
+                  path: AnyKernel3/Image.gz
+
+            - name: Upload AnyKernel3 Zip
+              uses: actions/upload-artifact@v4
+              with:
+                  name: AnyKernel3
+                  path: AnyKernel3/
