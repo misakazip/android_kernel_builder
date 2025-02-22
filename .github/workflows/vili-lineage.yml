@@ -19,7 +19,6 @@ jobs:
               uses: actions/checkout@v4
               with:
                 repository: 'misakazip/android_kernel_xiaomi_sm8350'
-                ref: 'vili-test'
 
             - name: Install dependencies
               run: |
